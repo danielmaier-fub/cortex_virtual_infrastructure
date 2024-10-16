@@ -41,15 +41,23 @@ First, we need to install the required packages. The 'devtools' package is requi
 install.packages("devtools")
 install.packages("DSLite")
 
-#install DataSHIELD packages
+# Install DataSHIELD packages
 install.packages('dsBase', repos=c(getOption('repos'), 'http://cran.datashield.org'), dependencies=TRUE)
 install.packages('dsBaseClient', repos=c(getOption('repos'), 'http://cran.datashield.org'), dependencies=TRUE)
+install.packages("DSI")
 
 # Install CCPhos packages from GitHub
 devtools::install_github(repo = "Appsilon/shiny.worker")
+
+# Re-Install
 devtools::install_github(repo = "BastianReiter/dsCCPhos", ref = "DevDaniel")
 devtools::install_github(repo = "BastianReiter/dsCCPhosClient", ref = "DevDaniel")
 devtools::install_github(repo = "BastianReiter/CCPhosApp")
+
+# New: Install dsTidyverse and latest version of DSI
+devtools::install_github("molgenis/ds-tidyverse")
+devtools::install_github("molgenis/ds-tidyverse-client")
+devtools::install_github("lifecycle-project/ds-helper")
 
 # Load required packages
 library(dsBase)
@@ -59,6 +67,11 @@ library(dsCCPhosClient)
 library(CCPhosApp)
 library(DSLite)
 
+# New
+library(DSI)
+library(dsTidyverse)
+library(dsTidyverseClient)
+library(dsHelper)
 ```
 
 ## Initiate virtual CCP infrastructure with provided test data
@@ -76,7 +89,8 @@ TestData <- readRDS("data/CCPTestData.rds")
 # custom or community DataSHIELD packages to the virtual servers.
 CCPConnections <- dsCCPhosClient::ConnectToVirtualCCP(CCPTestData = TestData, 
                                                       NumberOfSites = 3,
-                                                      NumberOfPatientsPerSite = 10000)
+                                                      NumberOfPatientsPerSite = 10000,
+                                                      AddedDsPackages = "dsTidyverse") # new
 ```
 
 ## Check Available Methods and Package Status
@@ -157,7 +171,6 @@ For individual objects, we can use the `GetObjectMetaData` function from the `ds
 ```{r eval = FALSE}
 
 # Collect comprehensive information about all workspace objects
-# !!D: deprecated function; 
 ServerWorkspaceInfo <- dsCCPhosClient::GetServerWorkspaceInfo(DataSources = CCPConnections)
 
 # Overview of all objects in server R sessions
@@ -225,7 +238,7 @@ With data curation, we obtain a 'cleaner' and more harmonized data set that disp
 
 ```{r eval = FALSE}
 
-# Apply data augmentation
+# Apply data augmentation: This is where the Augmented Data Set is created
 dsCCPhosClient::ds.AugmentData(DataSources = CCPConnections)
 
 # Make tables from Augmented Data Set directly addressable by unpacking them into R server session
@@ -283,6 +296,15 @@ TableData <- Frequencies$AbsoluteFrequencies %>%
 
 View(TableData)
 
+# Use dsTidyverse to filter data
+?dsTidyverseClient::ds.filter
+
+# Note: dsTidyverse is a package that provides a tidyverse-like interface for DataSHIELD
+dsTidyverseClient::ds.filter(
+  df.name = "ADS_Patients",
+  tidy_expr = list(ICD10Code == "C61"),
+  newobj = "ADS_Patients_filtered",
+  datasources = CCPConnections)
 
 # Use ggplot2 or any other graphics package for plotting
 library(ggplot2)
